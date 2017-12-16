@@ -93,6 +93,10 @@ defmodule ExDoc.Formatter.HTML.AutolinkTest do
     assert Autolink.elixir_functions("`Mod.<<>>/1`", ["Mod.<<>>/1"]) === "[`Mod.<<>>/1`](Mod.html#%3C%3C%3E%3E/1)"
   end
 
+  test "autolink functions creates links for Kernel special forms" do
+    assert Autolink.elixir_functions("`<<>>/1`", []) === "[`<<>>/1`](#{@elixir_docs}elixir/Kernel.SpecialForms.html#%3C%3C%3E%3E/1)"
+  end
+
   test "autolink functions creates links for callbacks" do
     assert Autolink.elixir_functions("`c:Mod.++/2`", ["c:Mod.++/2"]) ===
            "[`Mod.++/2`](Mod.html#c:++/2)"
@@ -114,6 +118,14 @@ defmodule ExDoc.Formatter.HTML.AutolinkTest do
       ["t:MyModule.my_type/0"]) ==  "[`MyModule.my_type/0`](MyModule.html#t:my_type/0)"
     assert Autolink.elixir_functions("`t:MyModule.my_type`",
       ["t:MyModule.my_type/0"]) ==  "`t:MyModule.my_type`"
+  end
+
+  test "autolink functions to basic and built-in types" do
+    assert Autolink.elixir_functions("`t:atom/0`", []) ==
+      "[`atom/0`](#{@elixir_docs}elixir/typespecs.html#basic-types)"
+
+    assert Autolink.elixir_functions("`t:term/0`", []) ==
+      "[`term/0`](#{@elixir_docs}elixir/typespecs.html#built-in-types)"
   end
 
   # elixir_modules

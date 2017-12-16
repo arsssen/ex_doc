@@ -62,6 +62,10 @@ defmodule ExDoc.Formatter.HTML.Autolink do
     timeout: 0
   ]
 
+  @basic_type_strings (for {f, a} <- @basic_types, do: "t:#{f}/#{a}")
+  @built_in_type_strings (for {f, a} <- @built_in_types, do: "t:#{f}/#{a}")
+  @special_form_strings (for {f, a} <- Kernel.SpecialForms.__info__(:macros), do: "#{f}/#{a}")
+
   @doc """
   Receives a list of module nodes and autolink all docs and typespecs.
   """
@@ -464,6 +468,7 @@ defmodule ExDoc.Formatter.HTML.Autolink do
     module_re = Regex.source(~r{(([A-Z][A-Za-z_\d]+)\.)*})
     fun_re = Regex.source(~r{([ct]:)?(#{module_re}([a-z_]+[A-Za-z_\d]*[\\?\\!]?|[\{\}=&\\|\\.<>~*^@\\+\\%\\!-]+)/\d+)})
     regex = ~r{(?<!\[)`\s*(#{fun_re})\s*`(?!\])}
+    elixir_doc = get_source(Kernel, [], lib_dirs)
 
     Regex.replace(regex, bin, fn all, match ->
       {prefix, module, function, arity} = split_function(match)
@@ -477,6 +482,15 @@ defmodule ExDoc.Formatter.HTML.Autolink do
 
         doc = get_source("Elixir." <> module, [], lib_dirs) ->
           "[`#{module}.#{function}/#{arity}`](#{doc}#{module}#{extension}##{prefix}#{enc_h function}/#{arity})"
+
+        match in @basic_type_strings ->
+          "[`#{function}/#{arity}`](#{elixir_doc}#{@basic_types_page})"
+
+        match in @built_in_type_strings ->
+          "[`#{function}/#{arity}`](#{elixir_doc}#{@built_in_types_page})"
+
+        match in @special_form_strings ->
+          "[`#{function}/#{arity}`](#{elixir_doc}Kernel.SpecialForms#{extension}##{prefix}#{enc_h function}/#{arity})"
 
         true ->
           all
