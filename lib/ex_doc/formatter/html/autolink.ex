@@ -340,16 +340,7 @@ defmodule ExDoc.Formatter.HTML.Autolink do
   will get translated to the new href of the function.
   """
   def local_doc(bin, locals) when is_binary(bin) do
-    fun_re = Regex.source(~r{(([ct]:)?([a-z_]+[A-Za-z_\d]*[\\?\\!]?|[\{\}=&\\|\\.<>~*^@\\+\\%\\!-]+)/\d+)})
-    regex = ~r{(?<!\[)`\s*(#{fun_re})\s*`(?!\])}
-    Regex.replace(regex, bin, fn all, match ->
-      if match in locals do
-        {prefix, _, function, arity} = split_function(match)
-        "[`#{function}/#{arity}`](##{prefix}#{enc_h function}/#{arity})"
-      else
-        all
-      end
-    end)
+    autolink_doc(bin, locals, [], elixir_lib_dirs())
   end
 
   @doc """
@@ -396,22 +387,7 @@ defmodule ExDoc.Formatter.HTML.Autolink do
   will get translated to the new href of the function.
   """
   def elixir_functions(bin, project_funs, extension \\ ".html", lib_dirs \\ elixir_lib_dirs()) when is_binary(bin) do
-    module_re = Regex.source(~r{(([A-Z][A-Za-z_\d]+)\.)+})
-    fun_re = Regex.source(~r{([ct]:)?(#{module_re}([a-z_]+[A-Za-z_\d]*[\\?\\!]?|[\{\}=&\\|\\.<>~*^@\\+\\%\\!-]+)/\d+)})
-    regex = ~r{(?<!\[)`\s*(#{fun_re})\s*`(?!\])}
-
-    Regex.replace(regex, bin, fn all, match ->
-      {prefix, module, function, arity} = split_function(match)
-
-      cond do
-        match in project_funs ->
-          "[`#{module}.#{function}/#{arity}`](#{module}#{extension}##{prefix}#{enc_h function}/#{arity})"
-        doc = lib_dirs_to_doc("Elixir." <> module, lib_dirs) ->
-          "[`#{module}.#{function}/#{arity}`](#{doc}#{module}.html##{prefix}#{enc_h function}/#{arity})"
-        true ->
-          all
-      end
-    end)
+    autolink_doc(bin, [], project_funs, lib_dirs, extension)
   end
 
   @doc """
@@ -480,6 +456,30 @@ defmodule ExDoc.Formatter.HTML.Autolink do
         "[`:#{match}`](#{doc}#{module}.html##{function}-#{arity})"
       else
         all
+      end
+    end)
+  end
+
+  defp autolink_doc(bin, locals, project_funs, lib_dirs, extension \\ ".html") do
+    module_re = Regex.source(~r{(([A-Z][A-Za-z_\d]+)\.)*})
+    fun_re = Regex.source(~r{([ct]:)?(#{module_re}([a-z_]+[A-Za-z_\d]*[\\?\\!]?|[\{\}=&\\|\\.<>~*^@\\+\\%\\!-]+)/\d+)})
+    regex = ~r{(?<!\[)`\s*(#{fun_re})\s*`(?!\])}
+
+    Regex.replace(regex, bin, fn all, match ->
+      {prefix, module, function, arity} = split_function(match)
+
+      cond do
+        match in locals ->
+          "[`#{function}/#{arity}`](##{prefix}#{enc_h function}/#{arity})"
+
+        match in project_funs ->
+          "[`#{module}.#{function}/#{arity}`](#{module}#{extension}##{prefix}#{enc_h function}/#{arity})"
+
+        doc = get_source("Elixir." <> module, [], lib_dirs) ->
+          "[`#{module}.#{function}/#{arity}`](#{doc}#{module}#{extension}##{prefix}#{enc_h function}/#{arity})"
+
+        true ->
+          all
       end
     end)
   end
